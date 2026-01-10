@@ -1,69 +1,89 @@
 /**
- * Agent Development Workspace
- *
- * Example: Simple Assistant Agent
+ * Agent Workspace - Multiple Agents Example
+ * 
+ * Shows how to use multiple specialized agents with skills and resources
  */
 
 import "dotenv/config";
-import { createAgent } from "./config/agentFactory";
+import { CustomerSupportAgent } from "./agents/examples/customerSupportAgent";
+import { CodeReviewerAgent } from "./agents/examples/codeReviewerAgent";
+import { DataAnalystAgent } from "./agents/examples/dataAnalystAgent";
+import { CalculatorSkill } from "./skills/calculatorSkill";
 import { getModelConfig } from "./config/modelConfig";
 
 async function main() {
-  console.log("🤖 Agent Development Workspace");
-  console.log("================================\n");
+  console.log("🤖 Multi-Agent Workspace Examples");
+  console.log("==================================\n");
 
   try {
-    // Load config
     const config = getModelConfig();
     console.log("✅ Configuration Loaded");
     console.log(`   Provider: ${config.provider}`);
-    console.log(`   Model: ${config.modelId}`);
-    console.log(`   Endpoint: ${config.endpoint || "default"}\n`);
+    console.log(`   Model: ${config.modelId}\n`);
 
-    // Create agent
-    const agent = createAgent();
-    console.log("✅ Agent Created\n");
+    // Example 1: Customer Support Agent
+    console.log("📝 Example 1: Customer Support Agent");
+    console.log("-------------------------------------");
+    const supportAgent = new CustomerSupportAgent(config.apiKey, config.modelId, config.provider === "github");
+    const customerResponse = await supportAgent.handleCustomerQuery(
+      "How do I reset my password?",
+      { accountId: "12345", status: "active" }
+    );
+    console.log(`Customer Support Response:\n${customerResponse}\n`);
 
-    // Example 1: Ask a simple question
-    console.log("📝 Example 1: Asking a question");
-    console.log("Question: What is the capital of France?");
-    const response1 = await agent.ask("What is the capital of France?");
-    console.log(`Answer: ${response1.message}\n`);
+    // Example 2: Code Reviewer Agent
+    console.log("📝 Example 2: Code Reviewer Agent");
+    console.log("----------------------------------");
+    const reviewerAgent = new CodeReviewerAgent(config.apiKey, config.modelId, config.provider === "github");
+    const codeReview = await reviewerAgent.reviewCode(
+      `
+function calculateSum(arr) {
+  let total = 0;
+  for (var i = 0; i < arr.length; i++) {
+    total = total + arr[i];
+  }
+  return total;
+}
+      `.trim(),
+      "javascript",
+      "This is a utility function"
+    );
+    console.log(`Code Review:\n${codeReview}\n`);
 
-    // Example 2: Multi-turn conversation
-    console.log("📝 Example 2: Multi-turn conversation");
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
-      { role: "user", content: "What is 2 + 2?" },
-    ];
-    const response2 = await agent.chat(messages);
-    console.log(`User: What is 2 + 2?`);
-    console.log(`Agent: ${response2.message}\n`);
+    // Example 3: Data Analyst Agent
+    console.log("📝 Example 3: Data Analyst Agent");
+    console.log("---------------------------------");
+    const analystAgent = new DataAnalystAgent(config.apiKey, config.modelId, config.provider === "github");
+    const analysis = await analystAgent.analyzeData(
+      {
+        sales: [100, 150, 120, 180, 200],
+        costs: [60, 70, 65, 90, 100],
+        months: ["Jan", "Feb", "Mar", "Apr", "May"],
+      },
+      "What is the trend and profit margin?"
+    );
+    console.log(`Data Analysis:\n${analysis}\n`);
 
-    // Add follow-up
-    messages.push({ role: "assistant", content: response2.message });
-    messages.push({ role: "user", content: "Multiply that by 5" });
-    const response3 = await agent.chat(messages);
-    console.log(`User: Multiply that by 5`);
-    console.log(`Agent: ${response3.message}\n`);
+    // Example 4: Using Skills
+    console.log("📝 Example 4: Using Skills");
+    console.log("---------------------------");
+    const calculator = new CalculatorSkill();
+    console.log(`Available Skill: ${calculator.getName()}`);
+    console.log(`Description: ${calculator.getDescription()}`);
+    console.log(`(Skills can be attached to agents for extended capabilities)\n`);
 
-    console.log("✅ Agent working successfully!\n");
+    console.log("✅ All examples completed successfully!\n");
     console.log("📚 Next Steps:");
-    console.log("1. Edit .env to add your API key");
-    console.log("2. Modify src/agents/ to create specialized agents");
-    console.log("3. Add tools in src/tools/ for extended capabilities");
+    console.log("1. Create your own agents in src/agents/examples/");
+    console.log("2. Add custom skills in src/skills/");
+    console.log("3. Create resource connectors in src/resources/");
+    console.log("4. Build multi-agent workflows");
+
   } catch (error) {
     console.error("❌ Error:", error instanceof Error ? error.message : error);
-    console.error(
-      "\n⚠️  Make sure your .env file is configured with an API key!"
-    );
-    console.error("   • For GitHub Models: https://github.com/settings/tokens");
-    console.error(
-      "   • For OpenAI: https://platform.openai.com/account/api-keys\n"
-    );
+    console.error("\n⚠️  Make sure your .env file is configured with an API key!");
     process.exit(1);
   }
 }
-
-main().catch(console.error);
 
 main().catch(console.error);
