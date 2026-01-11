@@ -1,269 +1,137 @@
-/**
- * Marketing Agent
- *
- * Generates comprehensive marketing kits from client data using a structured prompt.
- * Maintains consistency across all kits with the same styling and structure.
- * Modifies copy based on client-specific data while keeping layout constant.
- */
-
 import { AssistantAgent } from "../assistantAgent";
-import {
-  ClientData,
-  WebsiteScrapedData,
-  MarketingKitInput,
-} from "./marketingKitTypes";
+import * as fs from "fs";
+import * as path from "path";
+import { ClientData, MarketingKitInput } from "./marketingKitTypes";
 
-export class MarketingAgent extends AssistantAgent {
-  constructor(
-    apiKey: string,
-    model: string = "gpt-4o-mini",
-    isGitHub: boolean = false
-  ) {
-    super(apiKey, model, isGitHub);
+/**
+ * MarketingAgent specializes in generating comprehensive marketing kits
+ * for brands, complete with brand voice, SEO strategy, audience personas,
+ * social strategies, and full engagement frameworks.
+ */
+export default class MarketingAgent extends AssistantAgent {
+  constructor(apiKey: string) {
+    super(apiKey);
   }
 
   /**
-   * Generates a complete marketing kit from client data
+   * Main method: Generate a complete marketing kit
    */
   async generateMarketingKit(input: MarketingKitInput): Promise<string> {
-    const {
-      clientData,
-      websiteData,
-      meetingNotes,
-      questionnaireResponses,
-      caseStudiesProof,
-      additionalContext,
-    } = input;
+    const clientContext = this.buildClientContext(input);
+    const masterPrompt = this.getMarketingKitMasterPrompt();
+    const fullPrompt = `${masterPrompt}\n\nCLIENT INFORMATION:\n${clientContext}`;
 
-    // Build context from all available data sources
-    const clientContext = this.buildClientContext(
-      clientData,
-      websiteData,
-      meetingNotes,
-      questionnaireResponses,
-      caseStudiesProof,
-      additionalContext
-    );
-
-    // The main prompt that will generate the marketing kit
-    const marketingKitPrompt = `${this.getMarketingKitMasterPrompt()}
-
-[CLIENT INPUT DATA]
-${clientContext}
-
-Generate a complete Marketing Kit following the exact structure and format specified above. 
-Ensure all opening tables are included first, then proceed with each section in order.
-Use only the provided client data - do not invent facts.
-If information is missing, mark with [FILL] in opening tables only and list gaps under "Open Items".`;
-
-    const response = await this.ask(marketingKitPrompt);
+    // Call the model to generate the marketing kit
+    const response = await this.ask(fullPrompt);
     return response.message;
   }
 
   /**
-   * Generates just the brand voice section for quick reference
+   * Helper: Generate brand voice and positioning section
    */
-  async generateBrandVoice(
-    clientData: ClientData,
-    websiteData?: WebsiteScrapedData
-  ): Promise<string> {
-    const prompt = `You are a brand strategist. Based on this client data, create a detailed Brand Voice section:
+  async generateBrandVoice(input: MarketingKitInput): Promise<string> {
+    const clientContext = this.buildClientContext(input);
+    const prompt = `You are a brand voice expert. Based on the following client information, create a detailed brand voice guide including:
+- Brand essence and purpose
+- Personality traits
+- Tone examples (formal, casual, inspirational, etc.)
+- Dos and don'ts
+- Key taglines and messaging
 
-Company: ${clientData.clientName}
-Primary Offerings: ${clientData.primaryOfferings.join(", ")}
-Brand Promise: ${clientData.brandPromise || "[Not provided]"}
-Voice Traits: ${clientData.voiceTraits?.join(", ") || "[Not provided]"}
-Differentiators: ${clientData.differentiators?.join(", ") || "[Not provided]"}
-${
-  websiteData?.voiceSamples
-    ? `Voice Samples: ${websiteData.voiceSamples.join("; ")}`
-    : ""
-}
-
-Create a Brand Voice section that includes:
-1. Essence (one sentence)
-2. Purpose (one paragraph)
-3. Personality (3-5 adjectives with explanations)
-4. Tone examples (3 sample lines that model the voice)
-5. Voice in action (how the brand speaks across channels)
-6. Tagline options (3-5 options)
-7. Do/Do Not list (5 pairs showing what to do and avoid)`;
+CLIENT INFO:
+${clientContext}`;
 
     const response = await this.ask(prompt);
     return response.message;
   }
 
   /**
-   * Generates audience and persona definitions
+   * Helper: Generate audience personas
    */
-  async generateAudiencePersonas(clientData: ClientData): Promise<string> {
-    const prompt = `You are an audience strategist. Create 3-5 detailed buyer personas for:
+  async generateAudiencePersonas(input: MarketingKitInput): Promise<string> {
+    const clientContext = this.buildClientContext(input);
+    const prompt = `You are a market researcher. Based on the client information below, develop 3-5 detailed audience personas including:
+- Persona name and role
+- Demographics
+- Pain points
+- Goals and desired outcomes
+- Typical channels and content preferences
 
-Company: ${clientData.clientName}
-Primary Offerings: ${clientData.primaryOfferings.join(", ")}
-Target Industries: ${clientData.priorityIndustries.join(", ")}
-Target Regions: ${clientData.targetRegions.join(", ")}
-ICP: ${clientData.icp || "[Not provided]"}
-Pain Points: ${clientData.painPoints?.join("; ") || "[Not provided]"}
-Desired Outcomes: ${clientData.desiredOutcomes?.join("; ") || "[Not provided]"}
-
-For each persona, include:
-- Name and title
-- Industry/role
-- Primary pain point
-- Desired outcome
-- Buying process
-- Key influences
-- Common objections
-- Success metric
-
-Format as detailed paragraphs with labeled bullets.`;
+CLIENT INFO:
+${clientContext}`;
 
     const response = await this.ask(prompt);
     return response.message;
   }
 
   /**
-   * Generates SEO and keyword strategy
+   * Helper: Generate SEO strategy
    */
-  async generateSEOStrategy(clientData: ClientData): Promise<string> {
-    const prompt = `You are an SEO strategist. Create a comprehensive SEO and keyword strategy for:
-
-Company: ${clientData.clientName}
-Offerings: ${clientData.primaryOfferings.join(", ")}
-Industries: ${clientData.priorityIndustries.join(", ")}
-Core Keywords: ${clientData.coreKeywords?.join(", ") || "[Not provided]"}
-Differentiators: ${clientData.differentiators?.join(", ") || "[Not provided]"}
-
-Create a strategy including:
-1. 4-5 keyword pillars with primary and secondary keywords
-2. Content hub structure (/blog, /resources, /solutions, etc.)
-3. Internal linking strategy
-4. Target keyword difficulty levels
-5. Content calendar themes aligned to keyword pillars
-
-Format as narrative explanation + tables where appropriate.`;
+  async generateSEOStrategy(input: MarketingKitInput): Promise<string> {
+    const keywords = input.clientData.coreKeywords?.join(", ") || "not specified";
+    const prompt = `Create an SEO strategy for a brand with core keywords: ${keywords}
+Include:
+- Keyword pillars and clusters
+- Content hub structure
+- Internal linking recommendations
+- Technical SEO checklist
+Focus on the provided keywords and expand with related search intents.`;
 
     const response = await this.ask(prompt);
     return response.message;
   }
 
   /**
-   * Generates a content calendar and social strategy
+   * Helper: Generate social and content strategy
    */
   async generateSocialAndContentStrategy(
-    clientData: ClientData
+    input: MarketingKitInput
   ): Promise<string> {
-    const prompt = `You are a content and social strategist. Create a social media and content strategy for:
+    const clientContext = this.buildClientContext(input);
+    const prompt = `Based on this client profile, develop a comprehensive social media and content strategy:
 
-Company: ${clientData.clientName}
-Offerings: ${clientData.primaryOfferings.join(", ")}
-Target Audience: ${clientData.icp || "[Not provided]"}
-Social Channels: ${
-      clientData.socialChannels?.join(", ") ||
-      "LinkedIn, Twitter, Facebook, Instagram"
-    }
-Differentiators: ${clientData.differentiators?.join(", ") || "[Not provided]"}
+${clientContext}
 
 Include:
-1. Channel selection and content type mix
-2. Posting cadence by channel
-3. Content pillars (education, entertainment, promotion, etc.)
-4. Campaign themes (4-6 quarterly campaigns)
-5. Hashtag strategy (brand, category, location buckets)
-6. Engagement and community building approach
-
-Format as lists, tables, and short narrative.`;
+- Social media channels and posting cadence
+- Content types and themes
+- Hashtag strategy
+- Engagement tactics
+- Campaign ideas
+- Monthly content calendar outline`;
 
     const response = await this.ask(prompt);
     return response.message;
   }
 
   /**
-   * Generates content brief templates for downstream use
+   * Helper: Generate detailed content brief
    */
-  async generateContentBrief(
-    contentType: "blog" | "email" | "social" | "landing-page",
-    clientData: ClientData,
-    topic: string
-  ): Promise<string> {
-    const briefPrompts: Record<string, string> = {
-      blog: `Create a comprehensive blog brief for a ${
-        clientData.clientName
-      } blog post about "${topic}".
+  async generateContentBrief(input: MarketingKitInput): Promise<string> {
+    const clientContext = this.buildClientContext(input);
+    const prompt = `Create a master content brief for this brand:
+
+${clientContext}
 
 Include:
-- SEO Keywords (primary + secondary)
-- H1 and recommended H2 structure
-- Target audience segment
-- Key messaging points
-- Internal links to use
-- CTAs to include
-- Word count target (≥750 words)
-- Voice and tone reminders
+- Content mission and goals
+- Audience insights
+- Key messaging pillars
+- Content formats
+- Publication channels
+- Tone and voice guidelines
+- Performance metrics`;
 
-${
-  clientData.coreKeywords
-    ? `Use these core keywords: ${clientData.coreKeywords.join(", ")}`
-    : ""
-}`,
-
-      email: `Create an email brief for ${clientData.clientName} about "${topic}".
-
-Include:
-- Email type (promotional, educational, nurture)
-- Subject line (≤7 words)
-- Preview line (≤80 chars)
-- Email structure (hook, value, proof, CTA, PS)
-- Target segment
-- Primary and secondary CTAs
-- Links to include
-- Voice reminders`,
-
-      social: `Create a social media posting brief for ${
-        clientData.clientName
-      } about "${topic}".
-
-Include:
-- Platform-specific posts (LinkedIn, Twitter, Instagram, Facebook)
-- Content hook/opening variation
-- Hashtag recommendations (6-10 balanced mix)
-- Visual guidelines
-- CTA suggestions
-- Posting cadence
-
-Channels: ${clientData.socialChannels?.join(", ") || "LinkedIn, Twitter"}`,
-
-      "landing-page": `Create a landing page brief for ${clientData.clientName} about "${topic}".
-
-Include:
-- Page URL and meta information
-- H1 headline and subheading
-- Value proposition bullets (3-5)
-- Problem and solution section outline
-- Proof/social proof to highlight
-- FAQ structure (6 questions)
-- Primary and secondary CTAs
-- Technical SEO requirements`,
-    };
-
-    const response = await this.ask(
-      briefPrompts[contentType] || briefPrompts.blog
-    );
+    const response = await this.ask(prompt);
     return response.message;
   }
 
   /**
-   * Private helper: Build full client context from all sources
+   * Private helper: Build comprehensive client context string
    */
-  private buildClientContext(
-    clientData: ClientData,
-    websiteData?: WebsiteScrapedData,
-    meetingNotes?: string,
-    questionnaireResponses?: Record<string, string>,
-    caseStudiesProof?: string[],
-    additionalContext?: string
-  ): string {
+  private buildClientContext(input: MarketingKitInput): string {
+    const { clientData, websiteData, meetingNotes, questionnaireResponses, caseStudiesProof, additionalContext } = input;
+
     let context = `Client Name: ${clientData.clientName}
 Brand Domain: ${clientData.brandDomain || "[Not provided]"}
 Primary Offerings: ${clientData.primaryOfferings.join(", ")}
@@ -353,116 +221,11 @@ ${additionalContext}`;
   }
 
   /**
-   * Private helper: Return the master marketing kit prompt
+   * Private helper: Return the master marketing kit prompt with optional template reference
    */
   private getMarketingKitMasterPrompt(): string {
-    return `[ROLE]
-
-    // Attempt to load a template file exported from the example marketing kit PDF.
-    try {
-      const templatePath = path.join(
-        process.cwd(),
-        "docs",
-        "assets",
-        "marketing-kits",
-        "MarketingKit_SwiftInnovation.txt"
-      );
-      if (fs.existsSync(templatePath)) {
-        const templateText = fs.readFileSync(templatePath, "utf8");
-        const fallback = `[ROLE]
+    const basePrompt = `[ROLE]
 Act as an expert brand and marketing strategist. Create and organize a complete Marketing Kit in one response. Focus ONLY on kit development. Use ONLY the inputs provided. If any info is missing, write [FILL] in the opening tables only, and list gaps under "Open Items." Do not invent facts.
-
-[FORMAT CONTRACT - READ FIRST]
-- The output MUST begin with exactly two Markdown tables, in this order and with these titles:
-  1) "📦 Kit Overview"
-  2) "🧭 Kit Structure"
-- Immediately after those, include a third table titled "Section-to-Engagement Index Mapping".
-- Each MUST be a Markdown table, never lists or prose.
-- If any field is unknown, fill with [FILL] while keeping the table structure.
-- Do not add columns or rename titles.
-- Do not use the em dash character. Use commas or hyphens instead.
-
-[NO PLACEHOLDERS]
-Do not leave [FILL] inside any live copy or URLs beyond the opening tables. If data is missing, list gaps once at the very end under "Open Items", then proceed using neutral phrasing in the copy.
-
-[KIT SECTIONS - REQUIRED]
-1. Overview - Purpose, how to use, quick summary
-2. The Goal - Business and marketing goal, revenue and delivery model
-3. Opportunity Areas - Workflow efficiency, digital tools, market trends
-4. Key Findings - 6 truths revealed by inputs
-5. Market Landscape - Macro trends, competitor patterns, channel opportunities
-6. Audience & Personas - 3-5 personas with labeled bullets
-7. B2B Industry Targets - Target segments with NAICS codes
-8. Brand Archetypes - Primary and secondary with mission, voice, values, promise
-9. Brand Voice - Essence, purpose, personality, tone examples, taglines, dos and don'ts
-10. Content - Keyword strategy, hubs, blog structure
-11. Social Strategy - Channels, content types, cadence, goals, campaigns
-12. Engagement Framework - Initiatives, projects, deliverables, tasks
-13. Digital Health & Technical Audit - Link to separate audit document
-14. References - Source list
-15. Accessibility & Inclusivity Notes - Alt text, contrast, plain language
-16. Consistency Checklist - Final validation list
-17. Open Items - Missing inputs and gaps
-
-[STATIC SECTIONS - REQUIRED FOR ALL KITS]
-Include these sections in every kit with consistent formatting:
-
-1) Audience & Messaging Matrix - Table mapping segments to pains, outcomes, messages, proof, CTAs
-2) Voice, Tone, and Do/Do Not - Voice traits and sample lines plus Do/Do Not pairs
-3) Offer and CTA Library - Table of reusable offers with CTAs
-4) SEO and Keyword Set - Pillars, keywords, internal link hubs
-`;
-
-        // Provide the exact template plus the instruction contract as the prompt.
-        return `${fallback}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${templateText}\n\n[END REFERENCE TEMPLATE]`;
-      }
-    } catch (e) {
-      // if reading fails, fall through to the hardcoded prompt below
-    }
-
-    return `[ROLE]
-Act as an expert brand and marketing strategist. Create and organize a complete Marketing Kit in one response. Focus ONLY on kit development. Use ONLY the inputs provided. If any info is missing, write [FILL] in the opening tables only, and list gaps under "Open Items." Do not invent facts.
-
-[FORMAT CONTRACT - READ FIRST]
-- The output MUST begin with exactly two Markdown tables, in this order and with these titles:
-  1) "📦 Kit Overview"
-  2) "🧭 Kit Structure"
-- Immediately after those, include a third table titled "Section-to-Engagement Index Mapping".
-- Each MUST be a Markdown table, never lists or prose.
-- If any field is unknown, fill with [FILL] while keeping the table structure.
-- Do not add columns or rename titles.
-- Do not use the em dash character. Use commas or hyphens instead.
-
-[NO PLACEHOLDERS]
-Do not leave [FILL] inside any live copy or URLs beyond the opening tables. If data is missing, list gaps once at the very end under "Open Items", then proceed using neutral phrasing in the copy.
-
-[KIT SECTIONS - REQUIRED]
-1. Overview - Purpose, how to use, quick summary
-2. The Goal - Business and marketing goal, revenue and delivery model
-3. Opportunity Areas - Workflow efficiency, digital tools, market trends
-4. Key Findings - 6 truths revealed by inputs
-5. Market Landscape - Macro trends, competitor patterns, channel opportunities
-6. Audience & Personas - 3-5 personas with labeled bullets
-7. B2B Industry Targets - Target segments with NAICS codes
-8. Brand Archetypes - Primary and secondary with mission, voice, values, promise
-9. Brand Voice - Essence, purpose, personality, tone examples, taglines, dos and don'ts
-10. Content - Keyword strategy, hubs, blog structure
-11. Social Strategy - Channels, content types, cadence, goals, campaigns
-12. Engagement Framework - Initiatives, projects, deliverables, tasks
-13. Digital Health & Technical Audit - Link to separate audit document
-14. References - Source list
-15. Accessibility & Inclusivity Notes - Alt text, contrast, plain language
-16. Consistency Checklist - Final validation list
-17. Open Items - Missing inputs and gaps
-
-[STATIC SECTIONS - REQUIRED FOR ALL KITS]
-Include these sections in every kit with consistent formatting:
-
-1) Audience & Messaging Matrix - Table mapping segments to pains, outcomes, messages, proof, CTAs
-2) Voice, Tone, and Do/Do Not - Voice traits and sample lines plus Do/Do Not pairs
-3) Offer and CTA Library - Table of reusable offers with CTAs
-4) SEO and Keyword Set - Pillars, keywords, internal link hubs
-`;
 
 [FORMAT CONTRACT - READ FIRST]
 - The output MUST begin with exactly two Markdown tables, in this order and with these titles:
@@ -512,5 +275,25 @@ Include these sections in every kit with consistent formatting:
 11) Alignment QA Gate - Rubric for brand validation
 
 Output all tables exactly as specified. Maintain consistent structure across all kits.`;
+
+    // Attempt to load a template file exported from the example marketing kit PDF
+    try {
+      const templatePath = path.join(
+        process.cwd(),
+        "docs",
+        "assets",
+        "marketing-kits",
+        "MarketingKit_SwiftInnovation.txt"
+      );
+      if (fs.existsSync(templatePath)) {
+        const templateText = fs.readFileSync(templatePath, "utf8");
+        return `${basePrompt}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${templateText}\n\n[END REFERENCE TEMPLATE]`;
+      }
+    } catch (e) {
+      // If reading fails, fall back to base prompt only
+      console.warn("Template file not found or error reading it");
+    }
+
+    return basePrompt;
   }
 }
