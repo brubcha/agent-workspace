@@ -9,26 +9,22 @@ import { CustomerSupportAgent } from "./agents/examples/customerSupportAgent";
 import { CodeReviewerAgent } from "./agents/examples/codeReviewerAgent";
 import { DataAnalystAgent } from "./agents/examples/dataAnalystAgent";
 import { CalculatorSkill } from "./skills/calculatorSkill";
-import { getModelConfig } from "./config/modelConfig";
+import { loadProviderConfig } from "./config/aiProviderConfig";
 
 async function main() {
   console.log("🤖 Multi-Agent Workspace Examples");
   console.log("==================================\n");
 
   try {
-    const config = getModelConfig();
+    const config = loadProviderConfig();
     console.log("✅ Configuration Loaded");
     console.log(`   Provider: ${config.provider}`);
-    console.log(`   Model: ${config.modelId}\n`);
+    console.log(`   Model: ${config.model}\n`);
 
     // Example 1: Customer Support Agent
     console.log("📝 Example 1: Customer Support Agent");
     console.log("-------------------------------------");
-    const supportAgent = new CustomerSupportAgent(
-      config.apiKey,
-      config.modelId,
-      config.provider === "github"
-    );
+    const supportAgent = new CustomerSupportAgent();
     const customerResponse = await supportAgent.handleCustomerQuery(
       "How do I reset my password?",
       { accountId: "12345", status: "active" }
@@ -38,11 +34,7 @@ async function main() {
     // Example 2: Code Reviewer Agent
     console.log("📝 Example 2: Code Reviewer Agent");
     console.log("----------------------------------");
-    const reviewerAgent = new CodeReviewerAgent(
-      config.apiKey,
-      config.modelId,
-      config.provider === "github"
-    );
+    const reviewerAgent = new CodeReviewerAgent();
     const codeReview = await reviewerAgent.reviewCode(
       `
 function calculateSum(arr) {
@@ -61,11 +53,7 @@ function calculateSum(arr) {
     // Example 3: Data Analyst Agent
     console.log("📝 Example 3: Data Analyst Agent");
     console.log("---------------------------------");
-    const analystAgent = new DataAnalystAgent(
-      config.apiKey,
-      config.modelId,
-      config.provider === "github"
-    );
+    const analystAgent = new DataAnalystAgent();
     const analysis = await analystAgent.analyzeData(
       {
         sales: [100, 150, 120, 180, 200],
@@ -95,7 +83,7 @@ function calculateSum(arr) {
   } catch (error) {
     console.error("❌ Error:", error instanceof Error ? error.message : error);
     console.error(
-      "\n⚠️  Make sure your .env file is configured with an API key!"
+      "\n⚠️  Make sure your .env file is configured with an AI provider!"
     );
     process.exit(1);
   }

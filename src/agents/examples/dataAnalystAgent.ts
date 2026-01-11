@@ -7,12 +7,8 @@
 import { AssistantAgent } from "../assistantAgent";
 
 export class DataAnalystAgent extends AssistantAgent {
-  constructor(
-    apiKey: string,
-    model: string = "gpt-4o-mini",
-    isGitHub: boolean = false
-  ) {
-    super(apiKey, model, isGitHub);
+  constructor() {
+    super();
   }
 
   async analyzeData(

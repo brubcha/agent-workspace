@@ -12,8 +12,8 @@ export default class MarketingAgent extends AssistantAgent {
   private cachedTemplate: string | null = null;
   private templateLoadError: string | null = null;
 
-  constructor(apiKey: string) {
-    super(apiKey);
+  constructor() {
+    super();
   }
 
   /**

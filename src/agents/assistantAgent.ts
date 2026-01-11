@@ -1,10 +1,12 @@
 /**
  * Simple Assistant Agent
  *
- * A basic agent that uses HTTP requests to call the OpenAI API
+ * A flexible agent that uses pluggable AI providers via factory pattern
+ * Supports: OpenAI, Anthropic, Ollama, GitHub Models
  */
 
-import * as https from "https";
+import { ProviderFactory } from "./providers/providerFactory";
+import { IAIProvider, AIMessage } from "./providers/iaIProvider";
 
 export interface AgentResponse {
   message: string;
@@ -12,85 +14,19 @@ export interface AgentResponse {
 }
 
 export class AssistantAgent {
-  private apiKey: string;
-  private model: string;
-  private endpoint: string;
-  private isGitHub: boolean;
+  private provider: IAIProvider;
 
-  constructor(
-    apiKey: string,
-    model: string = "gpt-4o-mini",
-    isGitHub: boolean = false
-  ) {
-    this.apiKey = apiKey;
-    this.model = model;
-    this.isGitHub = isGitHub;
-
-    if (isGitHub) {
-      this.endpoint = "models.inference.ai.azure.com";
-    } else {
-      this.endpoint = "api.openai.com";
-    }
-  }
-
-  private makeRequest(data: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const options: https.RequestOptions = {
-        hostname: this.endpoint,
-        path: "/v1/chat/completions",
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(data),
-        },
-      };
-
-      const req = https.request(options, (res) => {
-        let responseData = "";
-
-        res.on("data", (chunk) => {
-          responseData += chunk;
-        });
-
-        res.on("end", () => {
-          try {
-            const parsed = JSON.parse(responseData);
-            if (
-              parsed.choices &&
-              parsed.choices[0] &&
-              parsed.choices[0].message
-            ) {
-              resolve(parsed.choices[0].message.content);
-            } else if (parsed.error) {
-              reject(new Error(`API Error: ${parsed.error.message}`));
-            } else {
-              reject(new Error("Unexpected API response"));
-            }
-          } catch (e) {
-            reject(new Error(`Failed to parse response: ${responseData}`));
-          }
-        });
-      });
-
-      req.on("error", reject);
-      req.write(data);
-      req.end();
-    });
+  constructor() {
+    // Provider is initialized from environment variables via factory
+    this.provider = ProviderFactory.createProvider();
   }
 
   async ask(question: string): Promise<AgentResponse> {
     try {
-      const payload = JSON.stringify({
-        model: this.model,
-        messages: [{ role: "user", content: question }],
-        max_tokens: 1024,
-      });
-
-      const message = await this.makeRequest(payload);
+      const response = await this.provider.complete(question);
 
       return {
-        message,
+        message: response.message,
         timestamp: new Date(),
       };
     } catch (error) {
@@ -106,19 +42,15 @@ export class AssistantAgent {
     messages: Array<{ role: "user" | "assistant"; content: string }>
   ): Promise<AgentResponse> {
     try {
-      const payload = JSON.stringify({
-        model: this.model,
-        messages: messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        max_tokens: 2048,
-      });
+      const aiMessages: AIMessage[] = messages.map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      }));
 
-      const message = await this.makeRequest(payload);
+      const response = await this.provider.complete("", aiMessages);
 
       return {
-        message,
+        message: response.message,
         timestamp: new Date(),
       };
     } catch (error) {
@@ -128,5 +60,12 @@ export class AssistantAgent {
         }`
       );
     }
+  }
+
+  /**
+   * Get the current provider name for debugging/logging
+   */
+  getProvider(): string {
+    return this.provider.getName();
   }
 }
