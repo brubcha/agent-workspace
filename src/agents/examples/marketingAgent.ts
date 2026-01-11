@@ -26,7 +26,9 @@ export default class MarketingAgent extends AssistantAgent {
     try {
       // Validate input
       this.validateInput(input);
-      console.log(`[MarketingAgent] Generating kit for client: ${input.clientData.clientName}`);
+      console.log(
+        `[MarketingAgent] Generating kit for client: ${input.clientData.clientName}`
+      );
 
       const clientContext = this.buildClientContext(input);
       const masterPrompt = this.getMarketingKitMasterPrompt();
@@ -34,11 +36,15 @@ export default class MarketingAgent extends AssistantAgent {
 
       // Call the model to generate the marketing kit
       const response = await this.ask(fullPrompt);
-      console.log(`[MarketingAgent] Successfully generated kit (${response.message.length} chars)`);
+      console.log(
+        `[MarketingAgent] Successfully generated kit (${response.message.length} chars)`
+      );
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] Failed to generate marketing kit: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] Failed to generate marketing kit: ${errorMsg}`
+      );
       throw new Error(`Marketing kit generation failed: ${errorMsg}`);
     }
   }
@@ -51,7 +57,9 @@ export default class MarketingAgent extends AssistantAgent {
    */
   async generateBrandVoice(input: MarketingKitInput): Promise<string> {
     try {
-      console.log(`[MarketingAgent] Generating brand voice for: ${input.clientData.clientName}`);
+      console.log(
+        `[MarketingAgent] Generating brand voice for: ${input.clientData.clientName}`
+      );
       const clientContext = this.buildClientContext(input);
       const prompt = `You are a brand voice expert. Based on the following client information, create a detailed brand voice guide including:
 - Brand essence and purpose
@@ -67,7 +75,9 @@ ${clientContext}`;
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] Brand voice generation failed: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] Brand voice generation failed: ${errorMsg}`
+      );
       throw new Error(`Brand voice generation failed: ${errorMsg}`);
     }
   }
@@ -80,7 +90,9 @@ ${clientContext}`;
    */
   async generateAudiencePersonas(input: MarketingKitInput): Promise<string> {
     try {
-      console.log(`[MarketingAgent] Generating audience personas for: ${input.clientData.clientName}`);
+      console.log(
+        `[MarketingAgent] Generating audience personas for: ${input.clientData.clientName}`
+      );
       const clientContext = this.buildClientContext(input);
       const prompt = `You are a market researcher. Based on the client information below, develop 3-5 detailed audience personas including:
 - Persona name and role
@@ -96,7 +108,9 @@ ${clientContext}`;
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] Audience personas generation failed: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] Audience personas generation failed: ${errorMsg}`
+      );
       throw new Error(`Audience personas generation failed: ${errorMsg}`);
     }
   }
@@ -109,8 +123,11 @@ ${clientContext}`;
    */
   async generateSEOStrategy(input: MarketingKitInput): Promise<string> {
     try {
-      console.log(`[MarketingAgent] Generating SEO strategy for: ${input.clientData.clientName}`);
-      const keywords = input.clientData.coreKeywords?.join(", ") || "not specified";
+      console.log(
+        `[MarketingAgent] Generating SEO strategy for: ${input.clientData.clientName}`
+      );
+      const keywords =
+        input.clientData.coreKeywords?.join(", ") || "not specified";
       const prompt = `Create an SEO strategy for a brand with core keywords: ${keywords}
 Include:
 - Keyword pillars and clusters
@@ -123,7 +140,9 @@ Focus on the provided keywords and expand with related search intents.`;
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] SEO strategy generation failed: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] SEO strategy generation failed: ${errorMsg}`
+      );
       throw new Error(`SEO strategy generation failed: ${errorMsg}`);
     }
   }
@@ -138,7 +157,9 @@ Focus on the provided keywords and expand with related search intents.`;
     input: MarketingKitInput
   ): Promise<string> {
     try {
-      console.log(`[MarketingAgent] Generating social strategy for: ${input.clientData.clientName}`);
+      console.log(
+        `[MarketingAgent] Generating social strategy for: ${input.clientData.clientName}`
+      );
       const clientContext = this.buildClientContext(input);
       const prompt = `Based on this client profile, develop a comprehensive social media and content strategy:
 
@@ -156,7 +177,9 @@ Include:
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] Social strategy generation failed: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] Social strategy generation failed: ${errorMsg}`
+      );
       throw new Error(`Social strategy generation failed: ${errorMsg}`);
     }
   }
@@ -169,7 +192,9 @@ Include:
    */
   async generateContentBrief(input: MarketingKitInput): Promise<string> {
     try {
-      console.log(`[MarketingAgent] Generating content brief for: ${input.clientData.clientName}`);
+      console.log(
+        `[MarketingAgent] Generating content brief for: ${input.clientData.clientName}`
+      );
       const clientContext = this.buildClientContext(input);
       const prompt = `Create a master content brief for this brand:
 
@@ -188,7 +213,9 @@ Include:
       return response.message;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MarketingAgent] Content brief generation failed: ${errorMsg}`);
+      console.error(
+        `[MarketingAgent] Content brief generation failed: ${errorMsg}`
+      );
       throw new Error(`Content brief generation failed: ${errorMsg}`);
     }
   }
@@ -205,10 +232,16 @@ Include:
     if (!input.clientData.clientName?.trim()) {
       throw new Error("Client name is required and cannot be empty");
     }
-    if (!input.clientData.primaryOfferings || input.clientData.primaryOfferings.length === 0) {
+    if (
+      !input.clientData.primaryOfferings ||
+      input.clientData.primaryOfferings.length === 0
+    ) {
       throw new Error("At least one primary offering is required");
     }
-    if (!input.clientData.coreKeywords || input.clientData.coreKeywords.length === 0) {
+    if (
+      !input.clientData.coreKeywords ||
+      input.clientData.coreKeywords.length === 0
+    ) {
       throw new Error("At least one core keyword is required");
     }
   }
@@ -217,7 +250,14 @@ Include:
    * Private helper: Build comprehensive client context string
    */
   private buildClientContext(input: MarketingKitInput): string {
-    const { clientData, websiteData, meetingNotes, questionnaireResponses, caseStudiesProof, additionalContext } = input;
+    const {
+      clientData,
+      websiteData,
+      meetingNotes,
+      questionnaireResponses,
+      caseStudiesProof,
+      additionalContext,
+    } = input;
 
     let context = `Client Name: ${clientData.clientName}
 Brand Domain: ${clientData.brandDomain || "[Not provided]"}
@@ -387,12 +427,16 @@ Output all tables exactly as specified. Maintain consistent structure across all
         return `${basePrompt}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${this.cachedTemplate}\n\n[END REFERENCE TEMPLATE]`;
       } else {
         this.templateLoadError = "Template file not found";
-        console.warn("[MarketingAgent] Template file not found, using base prompt only");
+        console.warn(
+          "[MarketingAgent] Template file not found, using base prompt only"
+        );
       }
     } catch (e) {
       // Mark that loading failed to avoid repeated attempts
       this.templateLoadError = e instanceof Error ? e.message : String(e);
-      console.warn(`[MarketingAgent] Error loading template: ${this.templateLoadError}`);
+      console.warn(
+        `[MarketingAgent] Error loading template: ${this.templateLoadError}`
+      );
     }
 
     return basePrompt;
