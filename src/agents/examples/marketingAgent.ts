@@ -9,29 +9,51 @@ import { ClientData, MarketingKitInput } from "./marketingKitTypes";
  * social strategies, and full engagement frameworks.
  */
 export default class MarketingAgent extends AssistantAgent {
+  private cachedTemplate: string | null = null;
+  private templateLoadError: string | null = null;
+
   constructor(apiKey: string) {
     super(apiKey);
   }
 
   /**
    * Main method: Generate a complete marketing kit
+   * @param input - MarketingKitInput with client data, website content, and context
+   * @returns Promise<string> - Formatted marketing kit document from the AI model
+   * @throws Error if input validation fails or API call fails
    */
   async generateMarketingKit(input: MarketingKitInput): Promise<string> {
-    const clientContext = this.buildClientContext(input);
-    const masterPrompt = this.getMarketingKitMasterPrompt();
-    const fullPrompt = `${masterPrompt}\n\nCLIENT INFORMATION:\n${clientContext}`;
+    try {
+      // Validate input
+      this.validateInput(input);
+      console.log(`[MarketingAgent] Generating kit for client: ${input.clientData.clientName}`);
 
-    // Call the model to generate the marketing kit
-    const response = await this.ask(fullPrompt);
-    return response.message;
+      const clientContext = this.buildClientContext(input);
+      const masterPrompt = this.getMarketingKitMasterPrompt();
+      const fullPrompt = `${masterPrompt}\n\nCLIENT INFORMATION:\n${clientContext}`;
+
+      // Call the model to generate the marketing kit
+      const response = await this.ask(fullPrompt);
+      console.log(`[MarketingAgent] Successfully generated kit (${response.message.length} chars)`);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] Failed to generate marketing kit: ${errorMsg}`);
+      throw new Error(`Marketing kit generation failed: ${errorMsg}`);
+    }
   }
 
   /**
    * Helper: Generate brand voice and positioning section
+   * @param input - MarketingKitInput with client data
+   * @returns Promise<string> - Brand voice guide
+   * @throws Error if generation fails
    */
   async generateBrandVoice(input: MarketingKitInput): Promise<string> {
-    const clientContext = this.buildClientContext(input);
-    const prompt = `You are a brand voice expert. Based on the following client information, create a detailed brand voice guide including:
+    try {
+      console.log(`[MarketingAgent] Generating brand voice for: ${input.clientData.clientName}`);
+      const clientContext = this.buildClientContext(input);
+      const prompt = `You are a brand voice expert. Based on the following client information, create a detailed brand voice guide including:
 - Brand essence and purpose
 - Personality traits
 - Tone examples (formal, casual, inspirational, etc.)
@@ -41,16 +63,26 @@ export default class MarketingAgent extends AssistantAgent {
 CLIENT INFO:
 ${clientContext}`;
 
-    const response = await this.ask(prompt);
-    return response.message;
+      const response = await this.ask(prompt);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] Brand voice generation failed: ${errorMsg}`);
+      throw new Error(`Brand voice generation failed: ${errorMsg}`);
+    }
   }
 
   /**
    * Helper: Generate audience personas
+   * @param input - MarketingKitInput with client data
+   * @returns Promise<string> - 3-5 detailed audience personas
+   * @throws Error if generation fails
    */
   async generateAudiencePersonas(input: MarketingKitInput): Promise<string> {
-    const clientContext = this.buildClientContext(input);
-    const prompt = `You are a market researcher. Based on the client information below, develop 3-5 detailed audience personas including:
+    try {
+      console.log(`[MarketingAgent] Generating audience personas for: ${input.clientData.clientName}`);
+      const clientContext = this.buildClientContext(input);
+      const prompt = `You are a market researcher. Based on the client information below, develop 3-5 detailed audience personas including:
 - Persona name and role
 - Demographics
 - Pain points
@@ -60,16 +92,26 @@ ${clientContext}`;
 CLIENT INFO:
 ${clientContext}`;
 
-    const response = await this.ask(prompt);
-    return response.message;
+      const response = await this.ask(prompt);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] Audience personas generation failed: ${errorMsg}`);
+      throw new Error(`Audience personas generation failed: ${errorMsg}`);
+    }
   }
 
   /**
    * Helper: Generate SEO strategy
+   * @param input - MarketingKitInput with client data and keywords
+   * @returns Promise<string> - SEO strategy with pillars, keywords, and link hubs
+   * @throws Error if generation fails
    */
   async generateSEOStrategy(input: MarketingKitInput): Promise<string> {
-    const keywords = input.clientData.coreKeywords?.join(", ") || "not specified";
-    const prompt = `Create an SEO strategy for a brand with core keywords: ${keywords}
+    try {
+      console.log(`[MarketingAgent] Generating SEO strategy for: ${input.clientData.clientName}`);
+      const keywords = input.clientData.coreKeywords?.join(", ") || "not specified";
+      const prompt = `Create an SEO strategy for a brand with core keywords: ${keywords}
 Include:
 - Keyword pillars and clusters
 - Content hub structure
@@ -77,18 +119,28 @@ Include:
 - Technical SEO checklist
 Focus on the provided keywords and expand with related search intents.`;
 
-    const response = await this.ask(prompt);
-    return response.message;
+      const response = await this.ask(prompt);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] SEO strategy generation failed: ${errorMsg}`);
+      throw new Error(`SEO strategy generation failed: ${errorMsg}`);
+    }
   }
 
   /**
    * Helper: Generate social and content strategy
+   * @param input - MarketingKitInput with client data
+   * @returns Promise<string> - Social media and content strategy
+   * @throws Error if generation fails
    */
   async generateSocialAndContentStrategy(
     input: MarketingKitInput
   ): Promise<string> {
-    const clientContext = this.buildClientContext(input);
-    const prompt = `Based on this client profile, develop a comprehensive social media and content strategy:
+    try {
+      console.log(`[MarketingAgent] Generating social strategy for: ${input.clientData.clientName}`);
+      const clientContext = this.buildClientContext(input);
+      const prompt = `Based on this client profile, develop a comprehensive social media and content strategy:
 
 ${clientContext}
 
@@ -100,16 +152,26 @@ Include:
 - Campaign ideas
 - Monthly content calendar outline`;
 
-    const response = await this.ask(prompt);
-    return response.message;
+      const response = await this.ask(prompt);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] Social strategy generation failed: ${errorMsg}`);
+      throw new Error(`Social strategy generation failed: ${errorMsg}`);
+    }
   }
 
   /**
    * Helper: Generate detailed content brief
+   * @param input - MarketingKitInput with client data
+   * @returns Promise<string> - Master content brief
+   * @throws Error if generation fails
    */
   async generateContentBrief(input: MarketingKitInput): Promise<string> {
-    const clientContext = this.buildClientContext(input);
-    const prompt = `Create a master content brief for this brand:
+    try {
+      console.log(`[MarketingAgent] Generating content brief for: ${input.clientData.clientName}`);
+      const clientContext = this.buildClientContext(input);
+      const prompt = `Create a master content brief for this brand:
 
 ${clientContext}
 
@@ -122,8 +184,33 @@ Include:
 - Tone and voice guidelines
 - Performance metrics`;
 
-    const response = await this.ask(prompt);
-    return response.message;
+      const response = await this.ask(prompt);
+      return response.message;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[MarketingAgent] Content brief generation failed: ${errorMsg}`);
+      throw new Error(`Content brief generation failed: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Private helper: Validate required input fields
+   * @param input - MarketingKitInput to validate
+   * @throws Error if validation fails
+   */
+  private validateInput(input: MarketingKitInput): void {
+    if (!input || !input.clientData) {
+      throw new Error("Input is missing clientData");
+    }
+    if (!input.clientData.clientName?.trim()) {
+      throw new Error("Client name is required and cannot be empty");
+    }
+    if (!input.clientData.primaryOfferings || input.clientData.primaryOfferings.length === 0) {
+      throw new Error("At least one primary offering is required");
+    }
+    if (!input.clientData.coreKeywords || input.clientData.coreKeywords.length === 0) {
+      throw new Error("At least one core keyword is required");
+    }
   }
 
   /**
@@ -276,8 +363,17 @@ Include these sections in every kit with consistent formatting:
 
 Output all tables exactly as specified. Maintain consistent structure across all kits.`;
 
-    // Attempt to load a template file exported from the example marketing kit PDF
+    // Attempt to load a template file exported from the example marketing kit PDF (cached after first load)
     try {
+      // Return cached template if available
+      if (this.cachedTemplate) {
+        return `${basePrompt}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${this.cachedTemplate}\n\n[END REFERENCE TEMPLATE]`;
+      }
+      // Return base prompt if caching already failed
+      if (this.templateLoadError !== null) {
+        return basePrompt;
+      }
+
       const templatePath = path.join(
         process.cwd(),
         "docs",
@@ -286,12 +382,17 @@ Output all tables exactly as specified. Maintain consistent structure across all
         "MarketingKit_SwiftInnovation.txt"
       );
       if (fs.existsSync(templatePath)) {
-        const templateText = fs.readFileSync(templatePath, "utf8");
-        return `${basePrompt}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${templateText}\n\n[END REFERENCE TEMPLATE]`;
+        this.cachedTemplate = fs.readFileSync(templatePath, "utf8");
+        console.log("[MarketingAgent] Loaded and cached template file");
+        return `${basePrompt}\n\n[REFERENCE TEMPLATE - DO NOT ALTER]\n${this.cachedTemplate}\n\n[END REFERENCE TEMPLATE]`;
+      } else {
+        this.templateLoadError = "Template file not found";
+        console.warn("[MarketingAgent] Template file not found, using base prompt only");
       }
     } catch (e) {
-      // If reading fails, fall back to base prompt only
-      console.warn("Template file not found or error reading it");
+      // Mark that loading failed to avoid repeated attempts
+      this.templateLoadError = e instanceof Error ? e.message : String(e);
+      console.warn(`[MarketingAgent] Error loading template: ${this.templateLoadError}`);
     }
 
     return basePrompt;
