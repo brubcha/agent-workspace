@@ -1,6 +1,6 @@
 /**
  * Resource Base Class
- * 
+ *
  * Resources are external systems agents can access.
  * Examples: Database, API, FileSystem, etc.
  */

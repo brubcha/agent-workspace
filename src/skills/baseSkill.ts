@@ -1,6 +1,6 @@
 /**
  * Skill Base Class
- * 
+ *
  * Skills are reusable capabilities that agents can use.
  * Examples: WebSearch, FileIO, DataAnalysis, etc.
  */

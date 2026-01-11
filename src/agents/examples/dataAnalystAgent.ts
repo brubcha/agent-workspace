@@ -1,19 +1,27 @@
 /**
  * Data Analyst Agent Example
- * 
+ *
  * An agent that analyzes data and generates insights
  */
 
-import { AssistantAgent } from '../assistantAgent';
+import { AssistantAgent } from "../assistantAgent";
 
 export class DataAnalystAgent extends AssistantAgent {
-  constructor(apiKey: string, model: string = 'gpt-4o-mini', isGitHub: boolean = false) {
+  constructor(
+    apiKey: string,
+    model: string = "gpt-4o-mini",
+    isGitHub: boolean = false
+  ) {
     super(apiKey, model, isGitHub);
   }
 
-  async analyzeData(data: any, question: string, context?: string): Promise<string> {
+  async analyzeData(
+    data: any,
+    question: string,
+    context?: string
+  ): Promise<string> {
     const prompt = `You are a data analysis expert. Analyze the following data and answer the question.
-${context ? `\n\nContext: ${context}` : ''}
+${context ? `\n\nContext: ${context}` : ""}
 
 Data:
 \`\`\`json
@@ -28,11 +36,15 @@ Provide insights, patterns, and recommendations based on the data.`;
     return response.message;
   }
 
-  async generateReport(data: any, title: string, metrics: string[]): Promise<string> {
+  async generateReport(
+    data: any,
+    title: string,
+    metrics: string[]
+  ): Promise<string> {
     const prompt = `You are a data analysis expert. Generate a professional report based on the following data.
 
 Title: ${title}
-Key Metrics to Include: ${metrics.join(', ')}
+Key Metrics to Include: ${metrics.join(", ")}
 
 Data:
 \`\`\`json
